@@ -45,4 +45,6 @@ az storage container create --name ctdstfstate --subscription ******** --account
 ### Step 3 - Run the github actions workflow to create infrastructure
 This should be in the path .github/workflows from the root of the directory. An pull request to master branch will plan the terraform deployment, and an accepted pull request will create the planned infrastructure
 
-
+# Azure AML Deployment
+Azure Official Template Link
+https://github.com/Azure/aml-deploy
