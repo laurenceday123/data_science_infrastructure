@@ -42,5 +42,7 @@ az storage account keys list -g rg-terraform-infrastructure -n stdstfstate
 
 az storage container create --name ctdstfstatestag --subscription ******** --account-name stdstfstate --account-key <ACCOUNT KEY>
 ```
+### Step 3 - Run the github actions workflow to create infrastructure
+This should be in the path .githun/.workflows from the root of the directory
 
 
