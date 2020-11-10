@@ -1,0 +1,103 @@
+name: Deploy Terraform Provisioned machine learning workspace to dev
+on:
+    pull_request:
+        types: [opened, closed]
+        branches: 
+            - master
+#
+env:
+  ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+  ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+  ARM_SUBSCRIPTION_ID: # INSERT SUBSCRIPTION ID
+  ARM_TENANT_ID: # INSERT TENANT ID
+  TF_API_TOKEN: ${{ secrets.TF_USER_API_TOKEN }}
+  AZURE_SUB_NAME: "enter subscription name here"
+  ARM_ACCESS_KEY: ${{ secrets.AZURE_BACKEND_KEY }}
+
+
+# THIS SCRIPT USES THE DS_DEV SERVICE PRINCIPAL     
+jobs:
+    build-and-deploy-dev:
+        runs-on: ubuntu-latest
+        steps:
+
+            # step 1 : Instantiate GHA Windows container, checkout this repo
+            - name: 'Checkout GitHub Action'
+              uses: actions/checkout@master
+              with:
+                ref: branch_name
+
+            # step 2 : login to azure
+            - name: 'Azure Login'
+              uses: azure/login@v1
+              with:
+               creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+            # step 3 : check subscrption
+            - name: 'subscription check'
+              run: az account show
+
+            # step 4: Terraform setup
+            - name: 'terraform setup'
+              uses: hashicorp/setup-terraform@v1
+              with:
+                cli_config_credentials_token: ${{ secrets.TF_USER_API_TOKEN }}
+                terraform_wrapper: true
+
+            # step 5: Initiate terraform - root directory
+            - name: 'terraform init'
+              run: terraform init -input=false 
+                -backend-config="storage_account_name=stdstfstate" 
+                -backend-config="container_name=ctdstfstate"
+              working-directory: machine_learning_workspace
+
+            # step 6 Check configuration is syntactically valid and internally consistent
+            - name: Terraform Validate
+              id: validate
+              run: terraform validate
+              working-directory: directory_name
+
+
+            # step 7 terraform fmt
+            - name: 'terraform fmt'
+              run: terraform fmt 
+              working-directory: directory_name 
+
+            # step 8 terraform refresh
+            - name: Terraform refresh state
+              id: refresh
+              run: terraform refresh -input=false 
+                -var "azure_sub_name=$AZURE_SUB_NAME" 
+                -var "client_id=$ARM_CLIENT_ID"
+                -var "subscription_id=$ARM_SUBSCRIPTION_ID" 
+                -var "client_secret=$ARM_CLIENT_SECRET" 
+                -var "tenant_id=$ARM_TENANT_ID" 
+                -var "TF_USER_API_TOKEN=TF_API_TOKEN"
+              working-directory: directory_name
+
+            # step 9 Generate an execution plan for Terraform
+            - name: Terraform Plan
+              id: plan
+              run: terraform plan -input=false 
+                -var "azure_sub_name=$AZURE_SUB_NAME"
+                -var "client_id=$ARM_CLIENT_ID"
+                -var "subscription_id=$ARM_SUBSCRIPTION_ID"
+                -var "client_secret=$ARM_CLIENT_SECRET" 
+                -var "tenant_id=$ARM_TENANT_ID"
+                -var "TF_USER_API_TOKEN=TF_API_TOKEN"
+              working-directory: directory_name
+
+            
+            # step 10 Generate an execution plan for Terraform
+            - name: Terraform Apply
+              id: apply
+              if: github.event.pull_request.merged == true
+              run: terraform apply -input=false
+                -auto-approve
+                -var "azure_sub_name=$AZURE_SUB_NAME"
+                -var "client_id=$ARM_CLIENT_ID"
+                -var "subscription_id=$ARM_SUBSCRIPTION_ID"
+                -var "client_secret=$ARM_CLIENT_SECRET"
+                -var "tenant_id=$ARM_TENANT_ID"
+                -var "TF_USER_API_TOKEN=TF_API_TOKEN"
+              working-directory: directory_name
