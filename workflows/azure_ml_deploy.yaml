@@ -1,0 +1,68 @@
+name: Deploy Azure Machine Learning Service
+on:
+    push:
+        branches: 
+            - deployment
+        paths:
+            - '**/deploy.yaml'
+            - 'code/test/test.py'
+
+env:
+    PRIMARY_KEY: "# insert key here"
+    SECONDARY_KEY: "# insert secondary key here"
+#     CMK_VAULT_BASE_URL: ${{ secrets.KEY_VAULT_URL}}
+#     CMK_VAULT_BASE_URL: # key vault URL
+#     CMK_KEY_NAME: # Key name in key vault
+#     CMK_KEY_VERSION: # key version      
+
+jobs:
+  Build_and_Deploy:
+    runs-on: ubuntu-latest
+    steps:
+   
+    - name: Check Out Repository
+      id: checkout_repository
+      uses: actions/checkout@v2
+      with:
+        ref: deployment
+        
+    - name: create certs directory
+      id: make_certs_dir
+      run: mkdir certs
+   
+    - name: add certificate file
+      id: replace_cert
+      run: echo "${{ secrets.SSL_CERT }}" > cert.pem
+      working-directory: certs
+        
+    - name: add key
+      id: add_key
+      run: 'echo "${{ secrets.SSL_KEY }}" > key.pem'
+      working-directory: certs
+        
+
+
+    # Connect or Create the Azure Machine Learning Workspace
+    - name: Connect/Create Azure Machine Learning Workspace
+      id: aml_workspace
+      uses: Azure/aml-workspace@v1
+      with:
+          azure_credentials: ${{ secrets.AZURE_CREDENTIALS }}
+    
+
+    # Register model in Azure Machine Learning model registry
+    #- name: Register model
+    #  id: aml_registermodel
+    #  uses: Azure/aml-registermodel@v1
+    #  with:
+    #     azure_credentials: ${{ secrets.AZURE_CREDENTIALS }}
+          
+
+    # Deploy model in Azure Machine Learning to ACI
+    - name: Deploy model
+      id: aml_deploy
+      uses: Azure/aml-deploy@v1
+      with:
+         azure_credentials: ${{ secrets.AZURE_CREDENTIALS }}
+         model_name: "# model name"
+         model_version: 30
