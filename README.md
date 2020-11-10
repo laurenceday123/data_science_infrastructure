@@ -6,7 +6,7 @@ Terraform can be used to provision cloud resources and infrastructure in Azure. 
 
 ### Step 1 - Create a service principal and add to secrets
 ``` shell
-az ad sp create-for-rbac --name DS_PLAY --role "Contributor"--scopes /subscriptions/<SUBSCRIPTION ID>/resourceGroups/data-science --sdk auth
+az ad sp create-for-rbac --name DATA_SCIENCE --role "Contributor"--scopes /subscriptions/<SUBSCRIPTION ID>/resourceGroups/resource_group_name --sdk auth
 
 output
 {
